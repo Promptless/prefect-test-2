@@ -32,6 +32,7 @@ from that pool.
 - Improved visibility into the status of each worker, including when a worker was started 
 and when it last polled.
 - Better handling of race conditions for high availability use cases.
+- Worker logs are now sent to the API only if they have an associated worker ID, which is available when connected to Prefect Cloud. The `worker_logging_to_api_enabled` setting has been removed.
 
 ### Work pools
 
@@ -88,6 +89,15 @@ to enable [dryer deployment definitions](/3.0/deploy/infrastructure-examples/doc
     file or use the [`deploy`](/3.0/deploy/infrastructure-examples/docker) 
     function.
 
+5. **Enhanced Cancellation and Worker Logging:**
+
+    Enhanced cancellation is now the default behavior starting from version 2.14.6, ensuring that flow hooks such as `on_crashed` and `on_cancellation` execute as expected in Kubernetes deployments.
+
+    The `worker_logging_to_api_enabled` setting has been removed. Worker logs are now sent to the API only if they have an associated worker ID, which is available when connected to Prefect Cloud.
+
+6. **Image Tagging for Kubernetes:**
+
+    To ensure the latest images are pulled in Kubernetes, use unique image tags to avoid caching issues.
 ## What's similar
 
 - You can set storage blocks as the pull action in a `prefect.yaml` file.
