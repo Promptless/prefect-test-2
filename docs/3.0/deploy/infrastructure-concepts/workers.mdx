@@ -107,14 +107,9 @@ after it stopped sending heartbeats, but you can configure the threshold with th
 
 <span class="badge cloud"></span> Workers can now send logs directly to Prefect Cloud.
 
-To enable this feature, run the command:
-```bash
-prefect config set PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED=true
-```
-See our [profile settings](/3.0/manage/settings-and-profiles/) documentation for more information about changing settings.
+Logs are sent to the Prefect Cloud API only if a worker ID is present, indicating a connection to Prefect Cloud.
 
-Once enabled:
-- All worker logs are automatically sent to the Prefect Cloud API
+- All worker logs are automatically sent to the Prefect Cloud API when connected
 - Logs are accessible through both the Prefect Cloud UI and API
 - Each flow run will include a link to its associated worker's logs
 
