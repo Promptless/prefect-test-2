@@ -1,104 +1,54 @@
 ---
-title: Connect to Prefect Cloud
-description: Configure a local execution environment to access Prefect Cloud.
+title: What's new in Prefect 3.0
+sidebarTitle: What's new
 ---
 
-To create flow runs in a local or remote execution environment, first connect with Prefect Cloud or a 
-Prefect server as the backend API server. 
+Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
 
-This involves: 
+Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
 
-- Configuring the execution environment with the location of the API.
-- Authenticating with the API, either by logging in or providing a valid API key (Prefect Cloud only).
+<Info>
+**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
+</Info>
 
-## Log into Prefect Cloud from a terminal
+## Open source events and automation system
 
-Configure a local execution environment to use Prefect Cloud as the API server for flow runs. 
-You will log in a to Prefect Cloud account from the local environment where you want to run a flow.
+One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
 
-### Steps 
+With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
 
-1. Open a new terminal session.
-2. [Install Prefect](/3.0/get-started/install/) in the environment where you want to execute flow runs.
+## New transactional interface
 
-```bash
-pip install -U prefect
-```
+Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
 
-3. Use the `prefect cloud login` Prefect CLI command to log into Prefect Cloud from your environment.
+For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
 
-```bash
-prefect cloud login
-```
+## Flexible task execution
 
-The `prefect cloud login` command provides an interactive login experience. 
+Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
 
-```bash
-prefect cloud login
-```
+## Enhanced client-side engine
 
-```bash
-? How would you like to authenticate? [Use arrows to move; enter to select]
-> Log in with a web browser
-    Paste an API key
-Paste your authentication key:
-? Which workspace would you like to use? [Use arrows to move; enter to select]
-> prefect/terry-prefect-workspace
-    g-gadflow/g-workspace
-Authenticated with Prefect Cloud! Using workspace 'prefect/terry-prefect-workspace'.
-```
+Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
 
-You can authenticate by manually pasting an [API key](/3.0/manage/cloud/manage-users/api-keys/) or through a browser-based approval that auto-generates an API key with a 30-day expiration.
+One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
 
-### Change workspaces
+## Improved artifacts and variables
 
-To change which workspace to sync with, use the `prefect cloud workspace set` 
-Prefect CLI command while logged in, passing the account handle and workspace name:
+Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
 
-```bash
-prefect cloud workspace set --workspace "prefect/my-workspace"
-```
+The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
 
-If you don't provide a workspace, you will need to select one.
+## Workers
 
-**Workspace Settings** also shows you the `prefect cloud workspace set` Prefect CLI 
-command to sync a local execution environment with a given workspace.
+Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
 
-You may also use the `prefect cloud login` command with the `--workspace` or `-w` option to set the current workspace.
+Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
 
-```bash
-prefect cloud login --workspace "prefect/my-workspace"
-```
+## Performance enhancements
 
-## Manually configure Prefect API settings
+Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
 
-You can manually configure the `PREFECT_API_URL` setting to specify the Prefect Cloud API.
+## Release notes
 
-For Prefect Cloud, configure the `PREFECT_API_URL` and `PREFECT_API_KEY` settings to authenticate 
-with Prefect Cloud by using an account ID, workspace ID, and API key.
-
-```bash
-prefect config set PREFECT_API_URL="https://api.prefect.cloud/api/accounts/[ACCOUNT-ID]/workspaces/[WORKSPACE-ID]"
-prefect config set PREFECT_API_KEY="[API-KEY]"
-```
-
-When you're in a Prefect Cloud workspace, you can copy the `PREFECT_API_URL` value directly from the page URL.
-
-This example configures `PREFECT_API_URL` and `PREFECT_API_KEY` in the default profile. 
-You can use `prefect profile` CLI commands to create settings profiles for different configurations. 
-For example, you can configure a "cloud" profile to use the Prefect Cloud API URL and API key; 
-and another "local" profile for local development using a local Prefect API server started with `prefect server start`. 
-See [Settings](/3.0/manage/settings-and-profiles/) for details.
-
-<Note>
-**Environment variables**
-
-You can set `PREFECT_API_URL` and `PREFECT_API_KEY` just like any other environment variable. 
-See [Overriding defaults with environment variables](/3.0/manage/settings-and-profiles/) 
-for more information.
-</Note>
-
-## Install requirements in execution environments
-
-In local and remote execution environments, such as VMs and containers, ensure that you've installed any flow 
-requirements or dependencies before creating a flow run.
+See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).

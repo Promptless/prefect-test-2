@@ -315,73 +315,60 @@ To create a Prefect Cloud API key:
 1. Click the **+** button to create a new API key.
 1. Securely store the API key, ideally using a password manager.
 
-## Deploy a worker using Helm
+---
+title: What's new in Prefect 3.0
+sidebarTitle: What's new
+---
 
-After you create a cluster and work pool, the next step is to deploy a worker. 
-The worker sets up the necessary Kubernetes infrastructure to run your flows. 
-The recommended method for deploying a worker is with the [Prefect Helm Chart](https://github.com/PrefectHQ/prefect-helm/tree/main/charts/prefect-worker).
+Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
 
-### Add the Prefect Helm repository
+Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
 
-Add the Prefect Helm repository to your Helm client:
+<Info>
+**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
+</Info>
 
-```bash
-helm repo add prefect https://prefecthq.github.io/prefect-helm
-helm repo update
-```
+## Open source events and automation system
 
-### Create a namespace
+One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
 
-Create a new namespace in your Kubernetes cluster to deploy the Prefect worker:
+With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
 
-```bash
-kubectl create namespace prefect
-```
+## New transactional interface
 
-### Create a Kubernetes secret for the Prefect API key
+Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
 
-```bash
-kubectl create secret generic prefect-api-key \
---namespace=prefect --from-literal=key=your-prefect-cloud-api-key
-```
+For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
 
-### Configure Helm chart values
+## Flexible task execution
 
-Create a `values.yaml` file to customize the Prefect worker configuration.
-Add the following contents to the file:
+Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
 
-```yaml
-worker:
-  cloudApiConfig:
-    accountId: <target account ID>
-    workspaceId: <target workspace ID>
-  config:
-    workPool: <target work pool name>
-```
+## Enhanced client-side engine
 
-These settings ensure that the worker connects to the proper account, workspace, 
-and work pool.
+Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
 
-View your Account ID and Workspace ID in your browser URL when logged into Prefect Cloud.
-For example: \<https://app.prefect.cloud/account/abc-my-account-id-is-here/workspaces/123-my-workspace-id-is-here>.
+One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
 
-### Create a Helm release
+## Improved artifacts and variables
 
-Install the Prefect worker using the Helm chart with your custom `values.yaml` file:
+Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
 
-```bash
-helm install prefect-worker prefect/prefect-worker \
-  --namespace=prefect \
-  -f values.yaml
-```
+The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
 
-### Verify deployment
+## Workers
 
-Check the status of your Prefect worker deployment:
+Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
 
-```bash
-kubectl get pods -n prefect
-```
+Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
+
+## Performance enhancements
+
+Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
+
+## Release notes
+
+See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
 
 ## Define a flow
 

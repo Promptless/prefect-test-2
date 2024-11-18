@@ -61,40 +61,60 @@ Below is a list of available worker types. Most worker types require installatio
 If you don't see a worker type that meets your needs, consider 
 [developing a new worker type](/contribute/develop-a-new-worker-type/).
 
-### Worker options
+---
+title: What's new in Prefect 3.0
+sidebarTitle: What's new
+---
 
-Workers poll for work from one or more queues within a work pool. If the worker references a work queue that doesn't exist, it is created automatically.
-The worker CLI infers the worker type from the work pool.
-Alternatively, you can specify the worker type explicitly.
-If you supply the worker type to the worker CLI, a work pool is created automatically if it doesn't exist (using default job settings).
+Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
 
-Configuration parameters you can specify when starting a worker include:
+Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
 
-| Option                                            | Description                                                                                                                                 |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--name`, `-n`                                    | The name to give to the started worker. If not provided, a unique name will be generated.                                                   |
-| `--pool`, `-p`                                    | The work pool the started worker should poll.                                                                                               |
-| `--work-queue`, `-q`                              | One or more work queue names for the worker to pull from. If not provided, the worker pulls from all work queues in the work pool.      |
-| `--type`, `-t`                                    | The type of worker to start. If not provided, the worker type is inferred from the work pool.                                          |
-| <span class="no-wrap">`--prefetch-seconds`</span> | The amount of time before a flow run's scheduled start time to begin submission. Default is the value of `PREFECT_WORKER_PREFETCH_SECONDS`. |
-| `--run-once`                                      | Only run worker polling once. By default, the worker runs forever.                                                                          |
-| `--limit`, `-l`                                   | The maximum number of flow runs to start simultaneously.                                                                                    |
-| `--with-healthcheck`                                   | Start a healthcheck server for the worker.                                                                                    |
-| `--install-policy`                                   | Install policy to use workers from Prefect integration packages.                                                                                    |
+<Info>
+**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
+</Info>
 
-You must start a worker within an environment to access or create the required infrastructure to execute flow runs. 
-The worker will deploy flow runs to the infrastructure corresponding to the worker type. For example, if you start a worker with 
-type `kubernetes`, the worker deploys flow runs to a Kubernetes cluster.
+## Open source events and automation system
 
-Prefect must be installed in any environment (for example, virtual environment, Docker container) where you intend to run the worker or 
-execute a flow run.
+One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
 
-<Tip>
-**`PREFECT_API_URL` and `PREFECT_API_KEY`settings for workers**
+With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
 
-    `PREFECT_API_URL` must be set for the environment where your worker is running. You must also have a user or service account 
-    with the `Worker` role, which you can configure by setting the `PREFECT_API_KEY`.
-</Tip>
+## New transactional interface
+
+Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
+
+For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
+
+## Flexible task execution
+
+Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
+
+## Enhanced client-side engine
+
+Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
+
+One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
+
+## Improved artifacts and variables
+
+Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
+
+The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
+
+## Workers
+
+Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
+
+Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
+
+## Performance enhancements
+
+Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
+
+## Release notes
+
+See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
 
 ### Worker status
 
@@ -102,21 +122,60 @@ Workers have two statuses: `ONLINE` and `OFFLINE`. A worker is online if it send
 If a worker misses three heartbeats, it is considered offline. By default, a worker is considered offline a maximum of 90 seconds 
 after it stopped sending heartbeats, but you can configure the threshold with the `PREFECT_WORKER_HEARTBEAT_SECONDS` setting.
 
-### Worker logs
-<Warning>This feature is experimental as of Prefect version 3.1.1</Warning>
+---
+title: What's new in Prefect 3.0
+sidebarTitle: What's new
+---
 
-<span class="badge cloud"></span> Workers can now send logs directly to Prefect Cloud.
+Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
 
-To enable this feature, run the command:
-```bash
-prefect config set PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED=true
-```
-See our [profile settings](/3.0/manage/settings-and-profiles/) documentation for more information about changing settings.
+Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
 
-Once enabled:
-- All worker logs are automatically sent to the Prefect Cloud API
-- Logs are accessible through both the Prefect Cloud UI and API
-- Each flow run will include a link to its associated worker's logs
+<Info>
+**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
+</Info>
+
+## Open source events and automation system
+
+One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
+
+With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
+
+## New transactional interface
+
+Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
+
+For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
+
+## Flexible task execution
+
+Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
+
+## Enhanced client-side engine
+
+Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
+
+One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
+
+## Improved artifacts and variables
+
+Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
+
+The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
+
+## Workers
+
+Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
+
+Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
+
+## Performance enhancements
+
+Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
+
+## Release notes
+
+See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
 
 ### Worker details
 <span class="badge cloud"></span> The **Worker Details** page shows you three key areas of information:

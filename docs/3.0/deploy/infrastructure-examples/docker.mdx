@@ -1,83 +1,57 @@
 ---
-title: Run flows in Docker containers
-description: Learn how to deploy a flow to a Docker work pool with workers
+title: What's new in Prefect 3.0
+sidebarTitle: What's new
 ---
 
-In this example, you will set up:
+Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
 
-- a Docker [**work pool**](/3.0/deploy/infrastructure-concepts/work-pools/): stores the infrastructure configuration for your deployment
-- a Docker [**worker**](/3.0/deploy/infrastructure-concepts/workers/): process that polls the Prefect API for flow runs to execute as Docker containers
-- a [**deployment**](/3.0/deploy/index/): a flow that should run according to the configuration on your Docker work pool
+Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
 
-Then you can execute your deployment via the Prefect API (through the SDK, CLI, UI, etc).
+<Info>
+**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
+</Info>
 
-You must have [Docker](https://docs.docker.com/engine/install/) installed and running on your machine.
+## Open source events and automation system
 
-<Note>
-**Executing flows in a long-lived container**
+One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
 
-This guide shows how to run a flow in an ephemeral container that is removed after the flow run completes.
-To instead learn how to run flows in a static, long-lived container, see [this](/3.0/deploy/static-infrastructure-examples/docker/) guide.
+With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
 
-</Note>
+## New transactional interface
 
-### Create a work pool
+Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
 
-A work pool provides default infrastructure configurations that all jobs inherit and can override.
-You can adjust many defaults, such as the base Docker image, container cleanup behavior, and resource limits. 
+For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
 
-To set up a **Docker** type work pool with the default values, run:
+## Flexible task execution
 
-```bash
-prefect work-pool create --type docker my-docker-pool
-```
+Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
 
-... or create the work pool in the UI.
+## Enhanced client-side engine
 
-To confirm the work pool creation was successful, run:
+Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
 
-```bash
-prefect work-pool ls
-```
+One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
 
-You should see your new `my-docker-pool` listed in the output.
+## Improved artifacts and variables
 
-Next, check that you can see this work pool in your Prefect UI.
-Navigate to the **Work Pools** tab and verify that you see `my-docker-pool` listed.
-When you click into `my-docker-pool`, you should see a red status icon signifying that this work pool is not ready.
+Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
 
-To make the work pool ready, you'll need to start a worker.
-We'll show how to do this next.
+The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
 
-### Start a worker
+## Workers
 
-Workers are a lightweight polling process that kick off scheduled flow runs on a specific type of infrastructure (such as Docker).
-To start a worker on your local machine, open a new terminal and confirm that your virtual environment has `prefect` installed.
+Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
 
-Run the following command in this new terminal to start the worker:
+Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
 
-```bash
-prefect worker start --pool my-docker-pool
-```
+## Performance enhancements
 
-You should see the worker start.
-It's now polling the Prefect API to check for any scheduled flow runs it should pick up and then submit for execution.
-You'll see your new worker listed in the UI under the **Workers** tab of the Work Pools page with a recent last polled date.
-The work pool should have a `Ready` status indicator.
+Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
 
-<Tip>
-**Pro Tip:**
+## Release notes
 
-If `my-docker-pool` does not already exist, the below command will create it for you automatically with the default settings for that work pool type, in this case `docker`.
-
-```bash
-prefect worker start --pool my-docker-pool --type docker
-```
-</Tip>
-
-Keep this terminal session active for the worker to continue to pick up jobs.
-Since you are running this worker locally, the worker will if you close the terminal.
-In a production setting this worker should run as a [daemonized or managed process](/3.0/resources/daemonize-processes/).
+See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
 
 ## Create the deployment
 
