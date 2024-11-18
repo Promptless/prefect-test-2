@@ -8,17 +8,10 @@ import { X } from "lucide-react";
 type TagsInputProps = InputProps & {
 	value?: string[];
 	onChange?: (tags: string[]) => void;
-	placeholder?: string;
 };
 
 const TagsInput = React.forwardRef<HTMLInputElement, TagsInputProps>(
-	({
-		onChange,
-		value = [],
-		onBlur,
-		placeholder = "Enter tags",
-		...props
-	}: TagsInputProps = {}) => {
+	({ onChange, value = [], onBlur, ...props }: TagsInputProps = {}) => {
 		const [inputValue, setInputValue] = useState("");
 
 		const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -61,10 +54,10 @@ const TagsInput = React.forwardRef<HTMLInputElement, TagsInputProps>(
 		};
 
 		return (
-			<div className="flex items-center border rounded-md focus-within:ring-1 focus-within:ring-ring ">
-				<div className="flex items-center">
+			<div className="flex flex-wrap items-center border rounded-md focus-within:ring-1 focus-within:ring-ring ">
+				<div className="flex flex-wrap items-center gap-2 px-2">
 					{value.map((tag, index) => (
-						<Badge key={tag} variant="secondary" className="ml-1">
+						<Badge key={tag} variant="secondary" className="gap-1 px-2 mt-2">
 							{tag}
 							<button
 								type="button"
@@ -84,8 +77,8 @@ const TagsInput = React.forwardRef<HTMLInputElement, TagsInputProps>(
 					onKeyDown={handleInputKeyDown}
 					onBlur={handleInputBlur(onBlur)}
 					className="flex-grow border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
-					placeholder={placeholder}
-					aria-label={placeholder}
+					placeholder="Enter tags"
+					aria-label="Enter tags"
 					{...props}
 				/>
 			</div>

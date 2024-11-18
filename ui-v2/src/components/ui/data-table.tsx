@@ -6,13 +6,6 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from "@/components/ui/select";
 import { type Table as TanstackTable, flexRender } from "@tanstack/react-table";
 
 import {
@@ -32,7 +25,7 @@ export function DataTable<TData>({
 	table: TanstackTable<TData>;
 }) {
 	return (
-		<div className="flex flex-col gap-4">
+		<>
 			<div className="rounded-md border">
 				<Table>
 					<TableHeader>
@@ -81,39 +74,8 @@ export function DataTable<TData>({
 					</TableBody>
 				</Table>
 			</div>
-			<div className="flex flex-row justify-between items-center">
-				<DataTablePageSize table={table} />
-				<DataTablePagination table={table} />
-			</div>
-		</div>
-	);
-}
-
-interface DataTablePageSizeProps<TData> {
-	table: TanstackTable<TData>;
-}
-
-function DataTablePageSize<TData>({ table }: DataTablePageSizeProps<TData>) {
-	return (
-		<div className="flex flex-row items-center gap-2 text-xs text-muted-foreground">
-			<span className="whitespace-nowrap">Items per page</span>
-			<Select
-				value={table.getState().pagination.pageSize.toString()}
-				onValueChange={(value) => {
-					table.setPageSize(Number(value));
-				}}
-			>
-				<SelectTrigger aria-label="Items per page">
-					<SelectValue placeholder="Theme" />
-				</SelectTrigger>
-				<SelectContent>
-					<SelectItem value="5">5</SelectItem>
-					<SelectItem value="10">10</SelectItem>
-					<SelectItem value="25">25</SelectItem>
-					<SelectItem value="50">50</SelectItem>
-				</SelectContent>
-			</Select>
-		</div>
+			<DataTablePagination table={table} />
+		</>
 	);
 }
 
@@ -126,11 +88,6 @@ export function DataTablePagination<TData>({
 	table,
 	className,
 }: DataTablePaginationProps<TData>) {
-	const totalPages = table.getPageCount();
-	const currentPage = Math.min(
-		Math.ceil(table.getState().pagination.pageIndex + 1),
-		totalPages,
-	);
 	return (
 		<Pagination className={cn("justify-end", className)}>
 			<PaginationContent>
@@ -145,7 +102,8 @@ export function DataTablePagination<TData>({
 					/>
 				</PaginationItem>
 				<PaginationItem className="text-sm">
-					Page {currentPage} of {totalPages}
+					Page {Math.ceil(table.getState().pagination.pageIndex + 1)} of{" "}
+					{table.getPageCount()}
 				</PaginationItem>
 				<PaginationItem>
 					<PaginationNextButton

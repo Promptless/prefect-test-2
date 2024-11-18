@@ -494,7 +494,6 @@ class OpsgenieWebhook(AbstractAppriseNotificationBlock):
                 entity=self.entity,
                 batch=self.batch,
                 tags=self.tags,
-                action="new",
             ).url()
         )
         self._start_apprise_client(url)

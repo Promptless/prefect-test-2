@@ -53,6 +53,7 @@ from prefect.logging.loggers import (
 from prefect.server.schemas.actions import LogCreate
 from prefect.settings import (
     PREFECT_API_KEY,
+    PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED,
     PREFECT_LOGGING_COLORS,
     PREFECT_LOGGING_LEVEL,
     PREFECT_LOGGING_MARKUP,
@@ -636,37 +637,23 @@ class TestAPILogHandler:
         assert handler._get_payload_size(dict_log) == log_size
 
 
-WORKER_ID = uuid.uuid4()
-
-
 class TestWorkerLogging:
-    class CloudWorkerTestImpl(BaseWorker):
-        type: str = "cloud_logging_test"
+    class WorkerTestImpl(BaseWorker):
+        type: str = "logging_test"
         job_configuration: Type[BaseJobConfiguration] = BaseJobConfiguration
 
         async def _send_worker_heartbeat(self, *_, **__):
-            """
-            Workers only return an ID here if they're connected to Cloud,
-            so this simulates the worker being connected to Cloud.
-            """
-            return WORKER_ID
+            return "test_backend_id"
 
         async def run(self, *_, **__):
             pass
 
-    class ServerWorkerTestImpl(BaseWorker):
-        type: str = "server_logging_test"
-        job_configuration: Type[BaseJobConfiguration] = BaseJobConfiguration
-
-        async def run(self, *_, **__):
-            pass
-
-        async def _send_worker_heartbeat(self, *_, **__):
-            """
-            Workers only return an ID here if they're connected to Cloud,
-            so this simulates the worker not being connected to Cloud.
-            """
-            return None
+    @pytest.fixture
+    def experiment_enabled(self):
+        with temporary_settings(
+            updates={PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED: True}
+        ):
+            yield
 
     @pytest.fixture
     def logging_to_api_enabled(self):
@@ -685,24 +672,24 @@ class TestWorkerLogging:
         yield logger
         logger.removeHandler(worker_handler)
 
-    async def test_get_worker_logger_works_with_no_backend_id(self):
-        async with self.CloudWorkerTestImpl(
+    async def test_get_worker_logger_works_with_no_backend_id(self, experiment_enabled):
+        async with self.WorkerTestImpl(
             name="test", work_pool_name="test-work-pool"
         ) as worker:
             logger = get_worker_logger(worker)
-            assert logger.name == "prefect.workers.cloud_logging_test.test"
+            assert logger.name == "prefect.workers.logging_test.test"
 
-    async def test_get_worker_logger_works_with_backend_id(self):
-        async with self.CloudWorkerTestImpl(
+    async def test_get_worker_logger_works_with_backend_id(self, experiment_enabled):
+        async with self.WorkerTestImpl(
             name="test", work_pool_name="test-work-pool"
         ) as worker:
             await worker.sync_with_backend()
             logger = get_worker_logger(worker)
-            assert logger.name == "prefect.workers.cloud_logging_test.test"
-            assert logger.extra["worker_id"] == str(WORKER_ID)
+            assert logger.name == "prefect.workers.logging_test.test"
+            assert logger.extra["worker_id"] == "test_backend_id"
 
-    async def test_worker_emits_logs_with_worker_id(self, caplog):
-        async with self.CloudWorkerTestImpl(
+    async def test_worker_emits_logs_with_worker_id(self, caplog, experiment_enabled):
+        async with self.WorkerTestImpl(
             name="test", work_pool_name="test-work-pool"
         ) as worker:
             await worker.sync_with_backend()
@@ -713,39 +700,21 @@ class TestWorkerLogging:
             ]
 
             assert "testing_with_extras" in caplog.text
-            assert record_with_extras[0].worker_id == str(worker.backend_id)
-            assert worker._logger.extra["worker_id"] == str(worker.backend_id)
+            assert record_with_extras[0].worker_id == worker.backend_id
+            assert worker._logger.extra["worker_id"] == worker.backend_id
 
-    async def test_worker_logger_sends_log_to_api_worker_when_connected_to_cloud(
-        self, mock_log_worker, worker_handler, logging_to_api_enabled
+    def test_worker_logger_sends_log_to_api_worker(
+        self, logger, mock_log_worker, experiment_enabled, logging_to_api_enabled
     ):
-        async with self.CloudWorkerTestImpl(
-            name="test", work_pool_name="test-work-pool"
-        ) as worker:
-            await worker.sync_with_backend()
-            worker._logger.debug("test-worker-log")
+        logger.info("test-worker-log")
 
-        log_statement = [
-            log
-            for call in mock_log_worker.instance().send.call_args_list
-            for log in call.args
-            if log["name"] == worker._logger.name
-            and log["message"] == "test-worker-log"
-        ]
+        mock_log_worker.instance().send.assert_called_once()
+        assert len(mock_log_worker.instance().send.call_args_list) == 1
 
-        assert len(log_statement) == 1
-        assert log_statement[0]["worker_id"] == str(worker.backend_id)
-
-    async def test_worker_logger_does_not_send_logs_when_not_connected_to_cloud(
-        self, mock_log_worker, worker_handler, logging_to_api_enabled
-    ):
-        async with self.ServerWorkerTestImpl(
-            name="test", work_pool_name="test-work-pool"
-        ) as worker:
-            assert isinstance(worker._logger, logging.Logger)
-            worker._logger.debug("test-worker-log")
-
-        mock_log_worker.instance().send.assert_not_called()
+        log_statement = mock_log_worker.instance().send.call_args.args[0]
+        assert log_statement["name"] == logger.name
+        assert log_statement["level"] == 20
+        assert log_statement["message"] == "test-worker-log"
 
 
 class TestAPILogWorker:
