@@ -1,54 +1,126 @@
 ---
-title: What's new in Prefect 3.0
-sidebarTitle: What's new
+title: prefect-github
 ---
 
-Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
+Prefect-github makes it easy to interact with GitHub repositories and use GitHub credentials.
 
-Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
+## Getting started
 
-<Info>
-**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
-</Info>
+### Prerequisites
 
-## Open source events and automation system
+- A [GitHub account](https://github.com/).
 
-One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
+### Install `prefect-github`
 
-With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
+The following command will install a version of `prefect-github` compatible with your installed version of `prefect`. 
+If you don't already have `prefect` installed, it will install the newest version of `prefect` as well.
 
-## New transactional interface
+```bash
+pip install "prefect[github]"
+```
 
-Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
+Upgrade to the latest versions of `prefect` and `prefect-github`:
 
-For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
+```bash
+pip install -U "prefect[github]"
+```
 
-## Flexible task execution
+### Register newly installed block types
 
-Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
+Register the block types in the `prefect-github` module to make them available for use.
 
-## Enhanced client-side engine
+```bash
+prefect block register -m prefect_github
+```
 
-Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
+## Examples
 
-One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
+In the examples below, you create blocks with Python code.
+Alternatively, blocks can be created through the Prefect UI.
 
-## Improved artifacts and variables
+To create a deployment and run a deployment where the flow code is stored in a private GitHub repository, you can use the `GitHubCredentials` block.
 
-Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
+A deployment can use flow code stored in a GitHub repository without using this library in either of the following cases:
 
-The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
+- The repository is public
+- The deployment uses a [Secret block](https://docs.prefect.io/latest/develop/blocks/) to store the token
 
-## Workers
+Code to create a GitHub Credentials block:
 
-Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
+```python
+from prefect_github import GitHubCredentials
 
-Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
 
-## Performance enhancements
+github_credentials_block = GitHubCredentials(token="my_token")
+github_credentials_block.save(name="my-github-credentials-block")
+```
 
-Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
+### Access flow code stored in a private GitHub repository in a deployment
 
-## Release notes
+Use the credentials block you created above to pass the GitHub access token during deployment creation. The code below assumes there's flow code stored in a private GitHub repository.
 
-See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
+```python
+from prefect import flow
+from prefect.runner.storage import GitRepository
+from prefect_github import GitHubCredentials
+
+
+if __name__ == "__main__":
+
+    source = GitRepository(
+        url="https://github.com/org/private-repo.git",
+        credentials=GitHubCredentials.load("my-github-credentials-block")
+    )
+
+    flow.from_source(source=source, entrypoint="my_file.py:my_flow").deploy(
+        name="private-github-deploy",
+        work_pool_name="my_pool",
+    )
+```
+
+Alternatively, if you use a `prefect.yaml` file to create the deployment, reference the GitHub Credentials block in the `pull` step:
+
+```yaml
+pull:
+    - prefect.deployments.steps.git_clone:
+        repository: https://github.com/org/repo.git
+        credentials: "{{ prefect.blocks.github-credentials.my-github-credentials-block }}"
+```
+
+### Interact with a GitHub repository
+
+You can use prefect-github to create and retrieve issues and PRs from a repository.
+Here's an example of adding a star to a GitHub repository:
+
+```python
+from prefect import flow
+from prefect_github import GitHubCredentials
+from prefect_github.repository import query_repository
+from prefect_github.mutations import add_star_starrable
+
+
+@flow()
+def github_add_star_flow():
+    github_credentials = GitHubCredentials.load("github-token")
+    repository_id = query_repository(
+        "PrefectHQ",
+        "Prefect",
+        github_credentials=github_credentials,
+        return_fields="id"
+    )["id"]
+    starrable = add_star_starrable(
+        repository_id,
+        github_credentials
+    )
+    return starrable
+
+
+if __name__ == "__main__":
+    github_add_star_flow()
+```
+
+## Resources
+
+For assistance using GitHub, consult the [GitHub documentation](https://docs.github.com).
+
+Refer to the `prefect-github` SDK documentation linked in the sidebar to explore all the capabilities of the `prefect-github` library.

@@ -1,54 +1,137 @@
 ---
-title: What's new in Prefect 3.0
-sidebarTitle: What's new
+title: prefect-databricks
 ---
 
-Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
+Prefect integrations for interacting with Databricks.
 
-Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
+## Getting started
 
-<Info>
-**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
-</Info>
+### Prerequisites
 
-## Open source events and automation system
+- A [Databricks account](https://databricks.com/) and the necessary permissions to access desired services.
 
-One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
+### Install `prefect-databricks`
 
-With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
 
-## New transactional interface
+The following command will install a version of `prefect-databricks` compatible with your installed version of `prefect`. 
+If you don't already have `prefect` installed, it will install the newest version of `prefect` as well.
 
-Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
+```bash
+pip install "prefect[databricks]"
+```
 
-For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
+Upgrade to the latest versions of `prefect` and `prefect-databricks`:
 
-## Flexible task execution
+```bash
+pip install -U "prefect[databricks]"
+```
 
-Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
+### List jobs on the Databricks instance
 
-## Enhanced client-side engine
+```python
+from prefect import flow
+from prefect_databricks import DatabricksCredentials
+from prefect_databricks.jobs import jobs_list
 
-Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
 
-One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
+@flow
+def example_execute_endpoint_flow():
+    databricks_credentials = DatabricksCredentials.load("my-block")
+    jobs = jobs_list(
+        databricks_credentials,
+        limit=5
+    )
+    return jobs
 
-## Improved artifacts and variables
+if __name__ == "__main__":
+    example_execute_endpoint_flow()
+```
 
-Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
+### Use `with_options` to customize options on any existing task or flow
 
-The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
+```python
+custom_example_execute_endpoint_flow = example_execute_endpoint_flow.with_options(
+    name="My custom flow name",
+    retries=2,
+    retry_delay_seconds=10,
+)
+```
 
-## Workers
+### Launch a new cluster and run a Databricks notebook
 
-Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
+Notebook named `example.ipynb` on Databricks which accepts a name parameter:
 
-Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
+```python
+name = dbutils.widgets.get("name")
+message = f"Don't worry {name}, I got your request! Welcome to prefect-databricks!"
+print(message)
+```
 
-## Performance enhancements
+Prefect flow that launches a new cluster to run `example.ipynb`:
 
-Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
+```python
+from prefect import flow
+from prefect_databricks import DatabricksCredentials
+from prefect_databricks.jobs import jobs_runs_submit
+from prefect_databricks.models.jobs import (
+    AutoScale,
+    AwsAttributes,
+    JobTaskSettings,
+    NotebookTask,
+    NewCluster,
+)
 
-## Release notes
 
-See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
+@flow
+def jobs_runs_submit_flow(notebook_path, **base_parameters):
+    databricks_credentials = DatabricksCredentials.load("my-block")
+
+    # specify new cluster settings
+    aws_attributes = AwsAttributes(
+        availability="SPOT",
+        zone_id="us-west-2a",
+        ebs_volume_type="GENERAL_PURPOSE_SSD",
+        ebs_volume_count=3,
+        ebs_volume_size=100,
+    )
+    auto_scale = AutoScale(min_workers=1, max_workers=2)
+    new_cluster = NewCluster(
+        aws_attributes=aws_attributes,
+        autoscale=auto_scale,
+        node_type_id="m4.large",
+        spark_version="10.4.x-scala2.12",
+        spark_conf={"spark.speculation": True},
+    )
+
+    # specify notebook to use and parameters to pass
+    notebook_task = NotebookTask(
+        notebook_path=notebook_path,
+        base_parameters=base_parameters,
+    )
+
+    # compile job task settings
+    job_task_settings = JobTaskSettings(
+        new_cluster=new_cluster,
+        notebook_task=notebook_task,
+        task_key="prefect-task"
+    )
+
+    run = jobs_runs_submit(
+        databricks_credentials=databricks_credentials,
+        run_name="prefect-job",
+        tasks=[job_task_settings]
+    )
+
+    return run
+
+if __name__ == "__main__":
+    jobs_runs_submit_flow("/Users/username@gmail.com/example.ipynb", name="Marvin")
+```
+
+Note, instead of using the built-in models, you may also input valid JSON. For example, `AutoScale(min_workers=1, max_workers=2)` is equivalent to `{"min_workers": 1, "max_workers": 2}`.
+
+## Resources
+
+For assistance using Databricks, consult the [Databricks documentation](https://www.databricks.com/databricks-documentation).
+
+Refer to the `prefect-databricks` SDK documentation linked in the sidebar to explore all the capabilities of the `prefect-databricks` library.

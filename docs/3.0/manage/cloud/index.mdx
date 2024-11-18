@@ -1,54 +1,47 @@
 ---
-title: What's new in Prefect 3.0
-sidebarTitle: What's new
+title: Prefect Cloud overview
+description: Observe and orchestrate workflow applications with the Prefect Cloud platform.
 ---
 
-Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
+Prefect Cloud is a hosted workflow application platform with all the capabilities of the open source Prefect server plus additional features.
 
-Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
+- [Connect to Prefect Cloud](/3.0/manage/cloud/connect-to-cloud/) shows how to configure a local execution environment to access Prefect Cloud.
 
-<Info>
-**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
-</Info>
+The pages that follow provide detailed information about the features and capabilities of Prefect Cloud:
 
-## Open source events and automation system
+- [Manage workspaces](/3.0/manage/cloud/workspaces/) shows how to use isolated environments for organizing activity.
 
-One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
+The **Manage accounts** subsection covers aspects of Prefect Cloud accounts:
+- [Manage user accounts](/3.0/manage/cloud/manage-users/) explains how to use Prefect Cloud's personal accounts.
+- [Manage service accounts](/3.0/manage/cloud/manage-users/service-accounts/) describes how to configure API access for running workers or executing flow runs on remote infrastructure through API keys that are not associated with a user account. <span class="badge pro"></span> <span class="badge enterprise"></span>
+- [Manage teams](/3.0/manage/cloud/manage-users/manage-teams/) demonstrates how groups of users can be managed together. <span class="badge enterprise"></span>
+- [Manage account roles](/3.0/manage/cloud/manage-users/manage-roles/) shows how to use role-based access controls (RBAC): granular permissions to perform certain activities within an account or a workspace. Enterprise plans allow for custom roles with specific permissions. 
+- [Manage API keys](/3.0/manage/cloud/manage-users/api-keys/) explains how to grant access to Prefect Cloud from a local execution environment.
+- [Configure single sign-on](/3.0/manage/cloud/manage-users/configure-sso/) describes how (SSO) authentication integration is supported through identity providers with OIDC and SAML. Directory Sync and SCIM provisioning is also available. <span class="badge enterprise"></span>
+- [Audit Cloud activity](/3.0/manage/cloud/manage-users/audit-logs/) shows how Prefect provides a record of user activities to monitor for security and compliance. <span class="badge pro"></span> <span class="badge enterprise"></span>
+- [Object access control lists](/3.0/manage/cloud/manage-users/object-access-control-lists/) (ACLs) allow privileged users to restrict deployment and block access to individual users. <span class="badge enterprise"></span> 
+- [Secure access by IP](/3.0/manage/cloud/manage-users/secure-access-by-ip-address/) shows how to restrict access to Prefect Cloud by IP address. <span class="badge enterprise"></span>
 
-With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
+The remaining Prefect Cloud pages in this section cover various aspects of Prefect Cloud:
 
-## New transactional interface
+- [Rate limits and data retention](/3.0/manage/cloud/rate-limits/) discusses rate limits and data retention for Prefect Cloud.
+- [Terraform provider](https://registry.terraform.io/providers/PrefectHQ/prefect/latest/docs/guides/getting-started) links to the Prefect Cloud Terraform provider docs for infrastructure as code.
+- [Troubleshoot Prefect Cloud](/3.0/manage/cloud/troubleshoot-cloud/) contains common solutions for troubleshooting Prefect Cloud.
 
-Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
+Pages relevant to Prefect Cloud found elsewhere in the documentation include:
 
-For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
+- [Push work pools](/3.0/deploy/infrastructure-examples/serverless/) allow you to run flows on your serverless infrastructure without running a worker.
+- [Managed work pools](/3.0/deploy/infrastructure-examples/managed/) allow you to run flows on Prefect's infrastructure without running a worker.
+- [Webhooks](/3.0/automate/events/webhook-triggers/) .
+- [Incidents](/3.0/automate/incidents/) are a way to track and manage issues that arise during flow runs. <span class="badge enterprise"></span> 
 
-## Flexible task execution
+Error summaries (enabled by Marvin AI) distill the error logs of `Failed` and `Crashed` flow runs into actionable information. To enable this feature visit the **Settings** page for your account.
 
-Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
+The [Prefect Cloud REST API](/3.0/api-ref/rest-api/) is used to send and receive data for orchestration and monitoring between Prefect clients and Prefect Cloud.
+Prefect interactive Cloud REST API documentation is available at <a href="https://app.prefect.cloud/api/docs" target="_blank">https://app.prefect.cloud/api/docs</a>.
 
-## Enhanced client-side engine
 
-Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
+## Try Prefect Cloud
 
-One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
-
-## Improved artifacts and variables
-
-Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
-
-The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
-
-## Workers
-
-Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
-
-Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
-
-## Performance enhancements
-
-Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
-
-## Release notes
-
-See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
+To try Prefect Cloud, create a free account at [app.prefect.cloud](https://app.prefect.cloud/).
+Follow the steps in the UI to create and run your first workflow in Prefect Cloud. 

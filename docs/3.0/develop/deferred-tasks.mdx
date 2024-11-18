@@ -112,60 +112,67 @@ One example uses a FastAPI server with multiple microservices and simulates a ne
 The other example uses a Flask server with [Marvin](https://www.askmarvin.ai/) to ask questions of an LLM from the CLI 
 and get back answers.
 
----
-title: What's new in Prefect 3.0
-sidebarTitle: What's new
----
+### Set up
 
-Prefect 3.0 introduces a number of enhancements to the OSS product: a new events & automations backend for event-driven workflows and observability, improved runtime performance, autonomous task execution and a streamlined caching layer based on transactional semantics.
+<summary>Expand</summary>
 
-Most Prefect 2.0 users can upgrade without changes to their existing workflows. Please review the [upgrade guide](/3.0/resources/upgrade-to-prefect-3) for more information.
+#### Step 1: Activate a virtual environment
 
-<Info>
-**Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
-</Info>
+This example uses [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html), 
+but any virtual environment manager will work.
 
-## Open source events and automation system
+```bash
+conda deactivate
+conda create -n python-tasks python=3.12
+conda activate python-tasks
+```
 
-One of the largest features in Prefect 3.0 is the introduction of the events and automation system to the open source package. Previously exclusive to Prefect Cloud, this system now allows all users to create event-driven workflows and automate their system based on the presence or absence of observable events. 
+#### Step 2: Install Python dependencies
 
-With this new capability, you can trigger actions based on specific event payloads, cancel runs if certain conditions aren't met, or automate workflow runs based on external events. For instance, you could initiate a data processing pipeline automatically when a new file lands in an S3 bucket. The system also enables you to receive notifications for various system health events, giving you greater visibility and control over your workflows.
+```bash
+pip install -U prefect marvin fastapi==0.107
+```
 
-## New transactional interface
+#### Step 3: Connect to Prefect Cloud or a self-hosted Prefect server
 
-Another major addition in Prefect 3.0 is the new transactional interface. This powerful feature makes it easier than ever to build resilient and idempotent pipelines. With the transactional interface, you can group tasks into transactions, automatically roll back side effects on failure, and significantly improve your pipeline's idempotency and resilience.
+Use either Prefect Cloud or a self-hosted Prefect server for these examples.
 
-For example, you can define rollback behaviors for your tasks, ensuring that any side effects are cleanly reversed if a transaction fails. This is particularly useful for maintaining data consistency in complex workflows involving multiple steps or external systems.
+You must have `PREFECT_API_URL` set to send tasks to task workers.
 
-## Flexible task execution
+If you're using a Prefect server with a SQLite backing database (the default database), 
+save this value to your active Prefect Profile with the following command:
 
-Prefect 3.0 has no restrictions on where tasks can run. Tasks can be nested within other tasks, allowing for more flexible and modular workflows; they can also be called outside of flows, essentially enabling Prefect to function as a background task service. You can now run tasks autonomously, apply them asynchronously, or delay their execution as needed. This flexibility opens up new possibilities for task management and execution strategies in your data pipelines.
+```bash
+prefect config set PREFECT_API_URL=http://127.0.0.1:4200/api
+```
 
-## Enhanced client-side engine
+If using Prefect Cloud, set the `PREFECT_API_URL` value to the Prefect Cloud API URL and add your 
+[API key](https://docs.prefect.io/cloud/users/api-keys/).
 
-Prefect 3.0 comes with a thoroughly reworked client-side engine that brings several improvements to the table. You can now nest tasks within other tasks, adding a new level of modularity to your workflows. The engine also supports generator tasks, allowing for more flexible and efficient handling of iterative processes.
+The examples that use docker (examples 4 and 5) use a Prefect server by default.
+You can switch to Prefect Cloud by changing the `PREFECT_API_URL` and adding a variable for your API key in the 
+`docker-compose.yaml`.
+Or use a Prefect server backed by a PostgreSQL database by setting the `PREFECT_API_DATABASE_CONNECTION_URL`.
 
-One of the most significant changes is that all code now runs on the main thread by default. This change improves performance and leads to more intuitive behavior, especially when dealing with shared resources or non-thread-safe operations.
+If using Prefect server instead of Prefect Cloud, start your server by running the following command:
 
-## Improved artifacts and variables
+```bash
+prefect server start 
+```
 
-Prefect 3.0 enhances the artifacts system with new types, including progress bars and image artifacts. These additions allow for richer, more informative task outputs, improving the observability of your workflows.
+#### Step 4: Clone the repository (optional)
 
-The variables system has also been upgraded to support arbitrary JSON, not just strings. This expansion allows for more complex and structured data to be stored and retrieved as variables, increasing the flexibility of your workflow configurations.
+Clone the repository to get the code files for the examples:
 
-## Workers
+```bash
+git clone https://github.com/PrefectHQ/prefect-background-task-examples.git
+```
 
-Workers were first introduced in Prefect 2.0 as next-generation agents, and are now standard in Prefect 3.0. Workers offer a stronger governance model for infrastructure, improved monitoring of jobs and work pool/queue health, and more flexibility in choosing compute layers, resulting in a more robust and scalable solution for managing the execution of your workflows across various environments.
+Move into the directory:
 
-Worker logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies the logging configuration and ensures logs are only sent when supported by the backend. The `PREFECT_EXPERIMENTS_WORKER_LOGGING_TO_API_ENABLED` environment variable has been removed, and users should update their configurations to align with the new logging behavior.
-
-## Performance enhancements
-
-Prefect 3.0 doesn't just bring new features; it also delivers significant performance improvements. Users running massively parallel workflows on distributed systems such as Dask and Ray will notice substantial speedups. In some benchmark cases, we've observed up to a 98% reduction in runtime overhead. These performance gains translate directly into faster execution times and more efficient resource utilization for your data pipelines.
-
-## Release notes
-
-See release notes for each released version in the [Gitub repository](https://github.com/PrefectHQ/prefect/releases).
+```bash
+cd prefect-background-task-examples
+```
 
 ### Example 1: Run a Prefect task in the foreground by calling it
 
