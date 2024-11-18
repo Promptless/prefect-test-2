@@ -88,10 +88,6 @@ to enable [dryer deployment definitions](/3.0/deploy/infrastructure-examples/doc
     file or use the [`deploy`](/3.0/deploy/infrastructure-examples/docker) 
     function.
 
-5. **Logging Configuration Changes:**
-
-    The experimental setting for logging worker logs to Prefect Cloud has been removed. Logs are now sent to the API only if a worker ID is present, indicating a connection to Prefect Cloud. This change simplifies configuration and ensures logs are only sent when supported by the backend.
-
 ## What's similar
 
 - You can set storage blocks as the pull action in a `prefect.yaml` file.
