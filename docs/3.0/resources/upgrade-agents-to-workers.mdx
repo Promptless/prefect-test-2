@@ -32,6 +32,8 @@ from that pool.
 - Improved visibility into the status of each worker, including when a worker was started 
 and when it last polled.
 - Better handling of race conditions for high availability use cases.
+- Worker logs are now sent to Prefect Cloud only when linked to a worker ID, ensuring privacy and efficiency.
+- Performance improvements reduce runtime overhead by up to 98% for massively parallel workflows on distributed systems.
 
 ### Work pools
 
