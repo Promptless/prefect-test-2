@@ -16,6 +16,17 @@ This guide highlights key changes that you may need to consider when upgrading.
 **Prefect 2.0** refers to the 2.x lineage of the open source prefect package, and **Prefect 3.0** refers exclusively to the 3.x lineage of the prefect package. Neither version is strictly tied to any aspect of Prefect's commercial product, [Prefect Cloud](/3.0/manage/cloud). 
 </Info>
 
+#### Key Changes in Prefect 3.0
+
+- **Worker Functionality Enhancements**: Prefect 3.0 introduces improved worker governance, monitoring, and infrastructure management. Worker logs are now sent to Prefect Cloud only when linked to a worker ID, enhancing privacy and efficiency.
+
+- **Performance Improvements**: Significant performance improvements have been made, reducing runtime overhead by up to 98% for massively parallel workflows on distributed systems.
+
+- **Flow Hooks Execution**: Enhanced cancellation behavior ensures that flow hooks `on_crashed` and `on_cancellation` execute correctly in Kubernetes deployments.
+
+- **Docker Agent Connection**: Users on Ubuntu may need to adjust their Docker network settings or use the `--expose` flag to resolve connection issues with `host.docker.internal`.
+
+These changes are designed to improve the overall efficiency and reliability of workflows managed by Prefect 3.0.
 ## Quickstart
 
 To upgrade to Prefect 3.0, run:
@@ -179,6 +190,7 @@ This change affects you if: you're using agents from an early version of Prefect
 
 In Prefect 2.0, agents were deprecated in favor of next-generation workers. Workers are now standard in Prefect 3. For detailed information on upgrading from agents to workers, please refer to our [upgrade guide](https://docs-3.prefect.io/3.0/resources/upgrade-agents-to-workers).
 
+In Prefect 3.0, workers have been enhanced with improved governance, monitoring, and infrastructure management capabilities. Worker logs are now sent to Prefect Cloud only when linked to a worker ID, ensuring privacy and efficiency. Additionally, performance improvements have been made, reducing runtime overhead by up to 98% for massively parallel workflows on distributed systems.
 ### Resolving common gotchas
 
 #### `AttributeError: 'coroutine' object has no attribute <some attribute>`
@@ -298,3 +310,12 @@ my_flow.serve(
 )
 ```
 </CodeGroup>
+
+#### Flow hooks not executing correctly with KubernetesWorker
+
+In Prefect 3.0, a bug was fixed where flow hooks `on_crashed` and `on_cancellation` were not executing correctly in Kubernetes deployments. This was due to state transitions in the Prefect engine. The cancellation behavior has been enhanced to ensure these hooks execute as expected in remote Kubernetes deployments.
+
+#### Docker agent connection error on Ubuntu
+
+A connection error with Docker agents on Ubuntu was identified, causing tasks to remain in a submitted state due to issues with `host.docker.internal`. To resolve this, users may need to adjust their Docker network settings or use the `--expose` flag.
+```
