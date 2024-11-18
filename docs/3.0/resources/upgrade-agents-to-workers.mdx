@@ -32,6 +32,7 @@ from that pool.
 - Improved visibility into the status of each worker, including when a worker was started 
 and when it last polled.
 - Better handling of race conditions for high availability use cases.
+- Enhanced execution of flow hooks `on_crashed` and `on_cancellation` in KubernetesWorker deployments, ensuring consistent behavior even when flows are in a `CANCELLED` state.
 
 ### Work pools
 
@@ -87,6 +88,14 @@ to enable [dryer deployment definitions](/3.0/deploy/infrastructure-examples/doc
     [`prefect.yaml`](/3.0/deploy/infrastructure-concepts/prefect-yaml/#work-with-multiple-deployments-with-prefect-yaml) 
     file or use the [`deploy`](/3.0/deploy/infrastructure-examples/docker) 
     function.
+
+5. **Enhanced Flow Hooks Execution:**
+
+    The `on_crashed` and `on_cancellation` hooks in KubernetesWorker deployments have been improved to ensure consistent execution. This enhancement ensures that flow hooks execute as expected, improving reliability in Kubernetes deployments.
+
+6. **Docker Network Configuration:**
+
+    Users on Ubuntu may need to adjust their Docker network settings or use the `--expose` flag to resolve connection issues with `host.docker.internal`. This ensures tasks can communicate with the server effectively.
 
 ## What's similar
 
